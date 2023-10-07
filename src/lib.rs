@@ -218,7 +218,7 @@ impl<'b> AtomicBorrowRef<'b> {
             Self::check_overflow(borrow, new);
             Err("already mutably borrowed")
         } else {
-            Ok(AtomicBorrowRef { borrow: borrow })
+            Ok(AtomicBorrowRef { borrow })
         }
     }
 
@@ -373,6 +373,44 @@ impl<'b> Clone for AtomicBorrowRef<'b> {
     }
 }
 
+/// A wrapper type for an owned value derived from an `AtomicRefCell<T>`.
+pub struct OwnedAtomicRef<'b, T: Sized + 'b> {
+    value: T,
+    borrow: AtomicBorrowRef<'b>,
+}
+
+impl<'b, T: Sized> Deref for OwnedAtomicRef<'b, T> {
+    type Target = T;
+
+    #[inline]
+    fn deref(&self) -> &T {
+        // SAFETY: We hold shared borrow of the value.
+        unsafe { &self.value }
+    }
+}
+
+impl<'a, 'b: 'a, T: Sized> AtomicRef<'b, T> {
+    /// Make a new `OwnedAtomicRef` for a component of the borrowed data.
+    pub fn owned_map<U: Sized, F>(orig: AtomicRef<'b, T>, f: F) -> OwnedAtomicRef<'a, U>
+    where
+        F: FnOnce(&'b T) -> U,
+        T: Sized,
+    {
+        OwnedAtomicRef {
+            value: f(&*orig),
+            // TODO: REMOVE CLONE !!!!!!!!!!!! :O
+            // TODO: REMOVE CLONE !!!!!!!!!!!! :O
+            // TODO: REMOVE CLONE !!!!!!!!!!!! :O
+            // TODO: REMOVE CLONE !!!!!!!!!!!! :O
+            borrow: orig.borrow.clone(),
+            // TODO: REMOVE CLONE !!!!!!!!!!!! :O
+            // TODO: REMOVE CLONE !!!!!!!!!!!! :O
+            // TODO: REMOVE CLONE !!!!!!!!!!!! :O
+            // TODO: REMOVE CLONE !!!!!!!!!!!! :O
+        }
+    }
+}
+
 /// A wrapper type for an immutably borrowed value from an `AtomicRefCell<T>`.
 pub struct AtomicRef<'b, T: ?Sized + 'b> {
     value: NonNull<T>,
@@ -505,10 +543,13 @@ impl<'b, T: ?Sized + Debug + 'b> Debug for AtomicRefMut<'b, T> {
     }
 }
 
-impl<T: ?Sized + Debug> Debug for AtomicRefCell<T>  {
+impl<T: ?Sized + Debug> Debug for AtomicRefCell<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.try_borrow() {
-            Ok(borrow) => f.debug_struct("AtomicRefCell").field("value", &borrow).finish(),
+            Ok(borrow) => f
+                .debug_struct("AtomicRefCell")
+                .field("value", &borrow)
+                .finish(),
             Err(_) => {
                 // The RefCell is mutably borrowed so we can't look at its value
                 // here. Show a placeholder instead.
@@ -520,7 +561,9 @@ impl<T: ?Sized + Debug> Debug for AtomicRefCell<T>  {
                     }
                 }
 
-                f.debug_struct("AtomicRefCell").field("value", &BorrowedPlaceholder).finish()
+                f.debug_struct("AtomicRefCell")
+                    .field("value", &BorrowedPlaceholder)
+                    .finish()
             }
         }
     }

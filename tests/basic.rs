@@ -5,6 +5,11 @@ extern crate serde;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 
+#[derive(Debug, Default)]
+struct Store {
+    data: Vec<i32>,
+}
+
 #[derive(Debug)]
 struct Foo {
     u: u32,
@@ -175,6 +180,16 @@ fn map_mut() {
     assert_eq!(*d, 44);
     *d = 45;
     assert_eq!(*d, 45);
+}
+
+#[test]
+fn owned_map() {
+    let a = AtomicRefCell::new(Store::default());
+    let b = a.borrow();
+    assert_eq!(b.data.len(), 0);
+    let c = AtomicRef::owned_map(b, |x: &Store| x.data.iter());
+    // assert_eq!(c.count(), 0);
+    // assert_eq!(*d, 42);
 }
 
 #[test]
